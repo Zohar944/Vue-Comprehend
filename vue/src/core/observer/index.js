@@ -16,7 +16,7 @@ import {
   isServerRendering
 } from '../util/index'
 
-const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
+const arrayKeys = Object.getOwnPropertyNames(arrayMethods)  //返回当前数组的所有方法名
 
 /**
  * In some cases we may want to disable observation inside a component's
@@ -45,7 +45,7 @@ export class Observer {
     this.vmCount = 0
     def(value, '__ob__', this)
     if (Array.isArray(value)) { //如果观测对象是数组
-      if (hasProto) {
+      if (hasProto) { // 能力检测：判断__proto__是否可用，因为有的浏览器不支持该属性 
         protoAugment(value, arrayMethods)
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
@@ -98,7 +98,7 @@ function protoAugment (target, src: Object) {
 function copyAugment (target: Object, src: Object, keys: Array<string>) {
   for (let i = 0, l = keys.length; i < l; i++) {
     const key = keys[i]
-    def(target, key, src[key])
+    def(target, key, src[key])  // 监测数组的每个方法
   }
 }
 
@@ -112,12 +112,23 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     return
   }
   let ob: Observer | void
+
+  /** 
+   * Object的hasOwnProperty()方法返回一个布尔值，判断对象是否包含特定的自身（非继承）属性。
+   * hasOwn:hasOwnProperty()
+   *
+   * 如果value拥有自身属性‘__ob__’，而不是继承的，且类型是Observer，则返回它，如果没有
+   * 返回新创建一个Oberver实例
+   */
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
     shouldObserve &&
     !isServerRendering() &&
     (Array.isArray(value) || isPlainObject(value)) &&
+    /**
+     * Object.isExtensible()判断一个对象是否可扩展属性
+     */
     Object.isExtensible(value) &&
     !value._isVue
   ) {

@@ -148,6 +148,7 @@ export function createPatchFunction (backend) {
     const data = vnode.data
     const children = vnode.children
     const tag = vnode.tag
+    // 如果是元素节点
     if (isDef(tag)) {
       if (process.env.NODE_ENV !== 'production') {
         if (data && data.pre) {
@@ -198,10 +199,10 @@ export function createPatchFunction (backend) {
       if (process.env.NODE_ENV !== 'production' && data && data.pre) {
         creatingElmInVPre--
       }
-    } else if (isTrue(vnode.isComment)) {
+    } else if (isTrue(vnode.isComment)) {  // 如果是注释节点
       vnode.elm = nodeOps.createComment(vnode.text)
       insert(parentElm, vnode.elm, refElm)
-    } else {
+    } else {   // 如果是文本节点
       vnode.elm = nodeOps.createTextNode(vnode.text)
       insert(parentElm, vnode.elm, refElm)
     }
@@ -400,16 +401,16 @@ export function createPatchFunction (backend) {
       removeNode(vnode.elm)
     }
   }
-
+// 更新子节点
   function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
-    let oldStartIdx = 0
-    let newStartIdx = 0
-    let oldEndIdx = oldCh.length - 1
-    let oldStartVnode = oldCh[0]
-    let oldEndVnode = oldCh[oldEndIdx]
-    let newEndIdx = newCh.length - 1
-    let newStartVnode = newCh[0]
-    let newEndVnode = newCh[newEndIdx]
+    let oldStartIdx = 0  //旧节点开始的位置
+    let newStartIdx = 0  //新节点开始的位置
+    let oldEndIdx = oldCh.length - 1 //旧节点结束的位置
+    let oldStartVnode = oldCh[0] //旧节点开始的dom
+    let oldEndVnode = oldCh[oldEndIdx] //旧节点结束的dom
+    let newEndIdx = newCh.length - 1 //新节点结束的位置
+    let newStartVnode = newCh[0]  //新节点开始的dom
+    let newEndVnode = newCh[newEndIdx] //新节点结束的dom
     let oldKeyToIdx, idxInOld, vnodeToMove, refElm
 
     // removeOnly is a special flag used only by <transition-group>
@@ -422,6 +423,8 @@ export function createPatchFunction (backend) {
     }
 
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+
+      // 双指针
       if (isUndef(oldStartVnode)) {
         oldStartVnode = oldCh[++oldStartIdx] // Vnode has been moved left
       } else if (isUndef(oldEndVnode)) {
@@ -473,13 +476,14 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 检查重复键
   function checkDuplicateKeys (children) {
-    const seenKeys = {}
+    const seenKeys = {} //如果set集合
     for (let i = 0; i < children.length; i++) {
       const vnode = children[i]
       const key = vnode.key
       if (isDef(key)) {
-        if (seenKeys[key]) {
+        if (seenKeys[key]) { //如果已经存在，warn
           warn(
             `Duplicate keys detected: '${key}'. This may cause an update error.`,
             vnode.context
@@ -498,9 +502,10 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 更新节点
   function patchVnode (
-    oldVnode,
-    vnode,
+    oldVnode, // 旧节点
+    vnode, // 新节点
     insertedVnodeQueue,
     ownerArray,
     index,
@@ -530,6 +535,9 @@ export function createPatchFunction (backend) {
     // note we only do this if the vnode is cloned -
     // if the new node is not cloned it means the render functions have been
     // reset by the hot-reload-api and we need to do a proper re-render.
+    /**
+     * 如果新、旧节点都是静态节点、键值相同、且必须是克隆节点或带有v-once指令。
+     */
     if (isTrue(vnode.isStatic) &&
       isTrue(oldVnode.isStatic) &&
       vnode.key === oldVnode.key &&
@@ -545,26 +553,34 @@ export function createPatchFunction (backend) {
       i(oldVnode, vnode)
     }
 
-    const oldCh = oldVnode.children
-    const ch = vnode.children
+    const oldCh = oldVnode.children  //旧的子节点
+    const ch = vnode.children  // 新的子节点
     if (isDef(data) && isPatchable(vnode)) {
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
+    // 如果text为undefined
     if (isUndef(vnode.text)) {
+      // 如果新旧都存在子节点
       if (isDef(oldCh) && isDef(ch)) {
+        // 且新旧子节点不相等，更新子节点
         if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
-      } else if (isDef(ch)) {
+      
+      } else if (isDef(ch)) { //如果只有新节点存在子节点
         if (process.env.NODE_ENV !== 'production') {
           checkDuplicateKeys(ch)
         }
+        // 如果旧节点存在html，先清空，再添加
         if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
         addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
-      } else if (isDef(oldCh)) {
+      
+      } else if (isDef(oldCh)) { //如果只有旧节点存在子节点，移除旧节点的子节点
         removeVnodes(oldCh, 0, oldCh.length - 1)
+        // 如果都不存在子节点，但旧节点的html存在，清空html
       } else if (isDef(oldVnode.text)) {
         nodeOps.setTextContent(elm, '')
       }
+      // 如果新旧节点的html不相等，以最新的为准设置
     } else if (oldVnode.text !== vnode.text) {
       nodeOps.setTextContent(elm, vnode.text)
     }
