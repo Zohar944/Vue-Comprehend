@@ -14,7 +14,9 @@ import { isNonPhrasingTag } from 'web/compiler/util'
 import { unicodeRegExp } from 'core/util/lang'
 
 // Regular Expressions for parsing tags and attributes
+// 解析标签属性
 const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
+// 解析动态（绑定）属性
 const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z${unicodeRegExp.source}]*`
 const qnameCapture = `((?:${ncname}\\:)?${ncname})`
@@ -66,12 +68,16 @@ export function parseHTML (html, options) {
       if (textEnd === 0) {
         // Comment:
         if (comment.test(html)) {
+          // 若为注释，则继续查找是否存在'-->'
           const commentEnd = html.indexOf('-->')
-
+          
           if (commentEnd >= 0) {
+            // 若存在 '-->',继续判断options中是否保留注释
             if (options.shouldKeepComment) {
+              // 若保留注释，则把注释截取出来传给options.comment，创建注释类型的AST节点
               options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3)
             }
+            // 若不保留注释，则将游标移动到'-->'之后，继续向后解析
             advance(commentEnd + 3)
             continue
           }
@@ -79,9 +85,12 @@ export function parseHTML (html, options) {
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
         if (conditionalComment.test(html)) {
+          // 若为条件注释
           const conditionalEnd = html.indexOf(']>')
-
+          // 由于条件注释不存在于真正的DOM树中，所以不需要调用钩子函数创建AST节点
           if (conditionalEnd >= 0) {
+            //  若存在 ']>',则从原本的html字符串中把条件注释截掉，
+            // 把剩下的内容重新赋给html，继续向后匹配
             advance(conditionalEnd + 2)
             continue
           }
@@ -184,6 +193,8 @@ export function parseHTML (html, options) {
     html = html.substring(n)
   }
 
+  // 解析开始标签
+  
   function parseStartTag () {
     const start = html.match(startTagOpen)
     if (start) {
@@ -194,13 +205,25 @@ export function parseHTML (html, options) {
       }
       advance(start[0].length)
       let end, attr
+      // 如果不是结束标签，匹配动态（绑定）属性或原生属性
+      /**
+       * 如果剩下的字符串不符合开始标签的结束特征（startTagClose）
+       * 并且符合标签属性的特征的话，
+       * 那就说明还有未提取出的标签属性，
+       * 那就进入循环，继续提取，直到把所有标签属性都提取完毕。
+       */
       while (!(end = html.match(startTagClose)) && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
         attr.start = index
         advance(attr[0].length)
         attr.end = index
         match.attrs.push(attr)
       }
+      // 如果时结束标签
       if (end) {
+        /**
+         * 非自闭合标签匹配结果中的end[1]为""，而自闭合标签匹配结果中的end[1]为"/"。
+         * 所以根据匹配结果的end[1]是否是""我们即可判断出当前标签是否为自闭合标签
+         */
         match.unarySlash = end[1]
         advance(end[0].length)
         match.end = index
@@ -209,8 +232,10 @@ export function parseHTML (html, options) {
     }
   }
 
+  // 进一步处理解析开始标签的数据
   function handleStartTag (match) {
     const tagName = match.tagName
+    // 是否闭合标签
     const unarySlash = match.unarySlash
 
     if (expectHTML) {

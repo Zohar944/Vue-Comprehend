@@ -75,12 +75,15 @@ export function createASTElement (
 
 /**
  * Convert HTML string to AST.
+ * 将HTML模板字符串转化为AST
+ *  @template :待转换的模板字符串
+ *  @options :转换时所需的选项
  */
 export function parse (
   template: string,
   options: CompilerOptions
 ): ASTElement | void {
-  warn = options.warn || baseWarn
+  warn = options.warn |];-l; baseWarn
 
   platformIsPreTag = options.isPreTag || no
   platformMustUseProp = options.mustUseProp || no
@@ -210,6 +213,8 @@ export function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
+    // 当解析到开始标签时，调用该函数
+    // 标签名tag、标签属性attrs、标签是否自闭合unary
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
@@ -262,7 +267,7 @@ export function parse (
       // apply pre-transforms
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
-      }
+      }``
 
       if (!inVPre) {
         processPre(element)
@@ -296,7 +301,7 @@ export function parse (
         closeElement(element)
       }
     },
-
+    // 当解析到结束标签时，调用该函数
     end (tag, start, end) {
       const element = stack[stack.length - 1]
       // pop stack
@@ -307,7 +312,7 @@ export function parse (
       }
       closeElement(element)
     },
-
+    // 当解析到文本时，调用该函数
     chars (text: string, start: number, end: number) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
@@ -379,6 +384,7 @@ export function parse (
         }
       }
     },
+    // 当解析到注释时，调用该函数
     comment (text: string, start, end) {
       // adding anyting as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
